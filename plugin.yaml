@@ -1,0 +1,3 @@
+name: hermes-deliver
+version: 0.1.0
+description: "Actor-critic delivery loop (/deliver) and story decomposition with dependency-aware execution (/fanout) for Hermes Agent."
