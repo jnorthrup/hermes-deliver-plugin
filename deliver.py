@@ -12,6 +12,21 @@ from . import get_ctx
 MAX_ROUNDS = 5
 
 
+def _feedback(msg: str) -> None:
+    """Print immediate feedback through prompt_toolkit's ANSI renderer."""
+    try:
+        from cli import _cprint, _DIM, _RST
+        _cprint(f"  {_DIM}{msg}{_RST}")
+    except Exception:
+        print(f"  {msg}", flush=True)
+
+
+def _emit(lines: list, persistent: str, live: str = None) -> None:
+    """Dual output: append to lines (persistent) and print immediate feedback."""
+    lines.append(persistent)
+    _feedback(live if live is not None else persistent)
+
+
 def _dispatch(goal: str, context: str, toolsets: list, max_iterations: int = 50) -> str:
     """Call delegate_task through the plugin's dispatch_tool interface."""
     ctx = get_ctx()
@@ -85,16 +100,16 @@ def run_deliver(task: str, max_rounds: int = MAX_ROUNDS) -> str:
                 f"Edit the previous implementation. Do not regress on anything working."
             )
 
-        lines.append("  Worker starting...")
+        _emit(lines, "  Worker starting...", f"  [{rnd}/{max_rounds}] Worker starting...")
         worker_result = _dispatch(
             goal=worker_goal,
             context="You are a senior implementation agent. Do the work — write code, run tests, fix errors. No describing, only doing.",
             toolsets=["terminal", "file", "web"],
         )
-        lines.append(f"  Worker done ({len(worker_result)} chars)")
+        _emit(lines, f"  Worker done ({len(worker_result)} chars)", f"  [{rnd}/{max_rounds}] Worker done ({len(worker_result)} chars)")
 
         # --- CRITIC ---
-        lines.append("  Critic reviewing...")
+        _emit(lines, "  Critic reviewing...", f"  [{rnd}/{max_rounds}] Critic reviewing...")
         critic_goal = (
             f"TASK:\n{task}\n\n"
             f"WORKER TRANSCRIPT:\n{worker_result}\n\n"
@@ -113,13 +128,13 @@ def run_deliver(task: str, max_rounds: int = MAX_ROUNDS) -> str:
 
         verdict = _parse_verdict(critic_result)
         v = verdict.get("verdict", "EDIT").upper()
-        lines.append(f"  Verdict: {v}")
+        _emit(lines, f"  Verdict: {v}", f"  [{rnd}/{max_rounds}] Verdict: {v}")
 
         if v == "COMPLETE":
             score = verdict.get("score", "?")
             critique = verdict.get("critique", "")
             lines.append(f"\n✓ COMPLETE — score: {score}/10")
-            lines.append(f"  Critique: {critique[:300]}")
+            lines.append(f"  Critique: {critique}")
             return "\n".join(lines)
 
         elif v == "RESTART":
