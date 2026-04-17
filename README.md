@@ -73,6 +73,9 @@ python -m pytest tests/ -q
 
 Original concept and implementation by [@jnorthrup](https://github.com/jnorthrup) ([PR #10240](https://github.com/NousResearch/hermes-agent/pull/10240)). Adapted into plugin form by the Hermes team.
 
+ * The Grateful Dead, Terrapin Station 1977
+    - a love story around getting a *fan out*
+    
 ## License
 
 MIT
