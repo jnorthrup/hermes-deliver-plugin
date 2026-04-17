@@ -8,23 +8,9 @@ import json
 import re
 
 from . import get_ctx
+from .plugin_output import _emit
 
 MAX_ROUNDS = 5
-
-
-def _feedback(msg: str) -> None:
-    """Print immediate feedback through prompt_toolkit's ANSI renderer."""
-    try:
-        from cli import _cprint, _DIM, _RST
-        _cprint(f"  {_DIM}{msg}{_RST}")
-    except Exception:
-        print(f"  {msg}", flush=True)
-
-
-def _emit(lines: list, persistent: str, live: str = None) -> None:
-    """Dual output: append to lines (persistent) and print immediate feedback."""
-    lines.append(persistent)
-    _feedback(live if live is not None else persistent)
 
 
 def _dispatch(goal: str, context: str, toolsets: list, max_iterations: int = 50) -> str:
@@ -78,11 +64,11 @@ def run_deliver(task: str, max_rounds: int = MAX_ROUNDS) -> str:
     action = "RESTART"
     lines = []
 
-    lines.append(f"Deliver: {task[:80]}{'...' if len(task) > 80 else ''}")
-    lines.append(f"Max rounds: {max_rounds}")
+    _emit(lines, f"  🔀 Deliver: {task[:80]}{'...' if len(task) > 80 else ''}", f"🔀 Deliver: {task[:80]}{'...' if len(task) > 80 else ''}")
+    _emit(lines, f"  Max rounds: {max_rounds}", f"Max rounds: {max_rounds}")
 
     for rnd in range(1, max_rounds + 1):
-        lines.append(f"\n── Round {rnd}/{max_rounds} ──")
+        _emit(lines, f"\n  {'─' * 2} Round {rnd}/{max_rounds} {'─' * 2}", f"\n── Round {rnd}/{max_rounds} ──")
 
         # --- WORKER ---
         if action == "RESTART" or previous_output is None:
@@ -100,16 +86,16 @@ def run_deliver(task: str, max_rounds: int = MAX_ROUNDS) -> str:
                 f"Edit the previous implementation. Do not regress on anything working."
             )
 
-        _emit(lines, "  Worker starting...", f"  [{rnd}/{max_rounds}] Worker starting...")
+        _emit(lines, "  Deliver starting...", "Deliver starting...")
         worker_result = _dispatch(
             goal=worker_goal,
             context="You are a senior implementation agent. Do the work — write code, run tests, fix errors. No describing, only doing.",
             toolsets=["terminal", "file", "web"],
         )
-        _emit(lines, f"  Worker done ({len(worker_result)} chars)", f"  [{rnd}/{max_rounds}] Worker done ({len(worker_result)} chars)")
+        _emit(lines, f"  Worker done ({len(worker_result)} chars)", f"Worker done ({len(worker_result)} chars)")
 
         # --- CRITIC ---
-        _emit(lines, "  Critic reviewing...", f"  [{rnd}/{max_rounds}] Critic reviewing...")
+        _emit(lines, "  Critic reviewing...", "Critic reviewing...")
         critic_goal = (
             f"TASK:\n{task}\n\n"
             f"WORKER TRANSCRIPT:\n{worker_result}\n\n"
@@ -128,13 +114,13 @@ def run_deliver(task: str, max_rounds: int = MAX_ROUNDS) -> str:
 
         verdict = _parse_verdict(critic_result)
         v = verdict.get("verdict", "EDIT").upper()
-        _emit(lines, f"  Verdict: {v}", f"  [{rnd}/{max_rounds}] Verdict: {v}")
+        _emit(lines, f"  Verdict: {v}", f"Verdict: {v}")
 
         if v == "COMPLETE":
             score = verdict.get("score", "?")
             critique = verdict.get("critique", "")
-            lines.append(f"\n✓ COMPLETE — score: {score}/10")
-            lines.append(f"  Critique: {critique}")
+            _emit(lines, f"\n  ✅ COMPLETE — score: {score}/10", f"✅ COMPLETE — score: {score}/10")
+            lines.append(f"  Critique: {critique[:300]}")
             return "\n".join(lines)
 
         elif v == "RESTART":
@@ -147,7 +133,7 @@ def run_deliver(task: str, max_rounds: int = MAX_ROUNDS) -> str:
             demands = verdict.get("demands", [])
             lines.append(f"  EDIT — {len(demands)} demand(s)")
 
-    lines.append(f"\n⚠ Max rounds ({max_rounds}) hit. Spec may need work.")
+    lines.append(f"\n  ⚠️  Max rounds ({max_rounds}) hit. Spec may need work.")
     return "\n".join(lines)
 
 
