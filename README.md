@@ -6,7 +6,7 @@ Actor-critic delivery loop (`/deliver`) and story decomposition with dependency-
 
 **`/deliver <task>`** — Spawns a worker subagent to implement the task and a critic subagent to review it. Loops until the critic returns COMPLETE or max rounds (5) are hit. Both agents have full access to terminal, files, and web — they write real code, run real tests.
 
-**`/fanout <task>`** — Breaks a large task into 3-7 dependency-ordered stories via a decomposition subagent, lets you review/critique the plan, then executes each story through `/deliver`. State persists to `.fanout/` on disk for resume across sessions.
+**`/fanout <task>`** — Breaks a large task into 3-7 dependency-ordered jobs via a decomposition subagent, lets you review/critique the plan, then executes each job through `/deliver`. State persists to `.fanout/` on disk for resume across sessions.
 
 ### Key design
 
@@ -40,20 +40,20 @@ This decomposes the task and shows a plan. Then use subcommands:
 
 | Subcommand | Description |
 |---|---|
-| `/fanout accept` | Execute all stories in dependency order |
+| `/fanout accept` | Execute all jobs in dependency order |
 | `/fanout critique <text>` | Re-decompose with your feedback |
 | `/fanout status` | Show current plan and progress |
 | `/fanout abort` | Stop execution (keeps files) |
 | `/fanout clear` | Remove `.fanout/` directory |
 
 The `.fanout/` directory contains:
-- `plan.yaml` — the full plan with completion tracking
-- `stories/` — individual story files
+- `plan.yaml` — the full job graph with per-job status, verdict, and attempt tracking
+- `jobs/` — individual job files
 - `journal.md` — completion log with timestamps
 
 ### Resume
 
-If you close Hermes mid-execution, the `.fanout/` state persists. Run `/fanout accept` again to resume from where you left off — completed stories are skipped automatically.
+If you close Hermes mid-execution, the `.fanout/` state persists. Run `/fanout accept` again to resume from where you left off — completed jobs are skipped automatically and open jobs stay open until the critic accepts concrete artifacts.
 
 ## Requirements
 

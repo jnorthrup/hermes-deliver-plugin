@@ -4,8 +4,8 @@
     implement and a critic subagent to review, looping until the critic says
     COMPLETE (or max rounds hit).
 
-/fanout <task>   — Decomposes a task into dependency-ordered stories, presents
-    a plan for review, then executes each story through /deliver.
+/fanout <task>   — Decomposes a task into dependency-ordered jobs, presents
+    a plan for review, then executes each job through /deliver.
     Subcommands: /fanout accept | critique <text> | status | abort | clear
 
 Both commands run *outside* the agent conversation loop — they orchestrate
@@ -37,7 +37,7 @@ def register(ctx):
     ctx.register_command(
         "fanout",
         handler=handle_fanout,
-        description="Decompose task into stories, review plan, execute with /deliver per story",
+        description="Decompose task into jobs, review plan, execute with /deliver per job",
     )
 
 
