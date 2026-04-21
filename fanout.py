@@ -364,6 +364,48 @@ def _decompose(task: str, critique: str = "") -> dict | None:
     _log.flush()
 
     summary = _extract_subagent_summary(result_json)
+
+    # If delegate_task had no parent_agent context, fall back to direct LLM call
+    if not summary:
+        _log.write("delegate_task returned empty — falling back to direct AIAgent.chat()\n")
+        _log.flush()
+        try:
+            import os as _os
+            import yaml as _yaml
+            from run_agent import AIAgent
+            cfg = {}
+            cfg_path = _os.path.expanduser("~/.hermes/config.yaml")
+            if _os.path.exists(cfg_path):
+                with open(cfg_path) as _f:
+                    cfg = _yaml.safe_load(_f) or {}
+            m = cfg.get("model", {})
+            _agent = AIAgent(
+                model=m.get("default", "claude-sonnet-4.6"),
+                provider=m.get("provider"),
+                base_url=m.get("base_url"),
+                api_key=m.get("api_key"),
+                api_mode=m.get("api_mode", "chat_completions"),
+                max_iterations=3,
+                skip_context_files=True,
+                skip_memory=True,
+                quiet_mode=True,
+            )
+            prompt = (
+                "You are a senior architect doing ONLY decomposition. "
+                "Output ONLY a raw JSON object — no markdown fences, no commentary.\n\n"
+                "Decompose this task into 3-7 ordered jobs. Each job must be narrow enough "
+                "to complete in one session and concrete enough to review independently.\n\n"
+                'Format: {"jobs": [{"id": "001", "name": "...", "description": "...", '
+                '"dependencies": [], "acceptance": ["criterion 1"]}]}\n\n'
+                f"TASK:\n{task}{crit_note}"
+            )
+            summary = _agent.chat(prompt)
+            _log.write(f"direct LLM summary len={len(summary)}, repr[:200]={repr(summary)[:200]}\n")
+        except Exception as _e:
+            _log.write(f"direct LLM fallback failed: {_e}\n")
+            summary = ""
+        _log.flush()
+
     _log.write(f"summary type={type(summary).__name__}, len={len(summary)}, repr[:200]={repr(summary)[:200]}\n")
     _log.flush()
 
