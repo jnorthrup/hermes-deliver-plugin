@@ -30,6 +30,10 @@ FANOUT_DECOMPOSE_ONLY = "DECOMPOSE ONLY"
 FANOUT_DECOMPOSE_CONTEXT = "DECOMPOSE WITH CONTEXT"
 FANOUT_DECOMPOSE_EXAMPLE = "Example: …"
 
+class FanoutTransitionError(ValueError):
+    """Raised when the FSM refuses a transition from the current state."""
+
+
 class FanoutState(Enum):
     IDLE = "idle"
     DECOMPOSING = "decomposing"
@@ -142,7 +146,7 @@ class FanoutReviewFSM:
             valid = ", ".join(
                 f"{s.value} -> {e}" for s, evs in transitions.items() for e in evs
             )
-            raise ValueError(f"Invalid transition from {self._state.value}: {event}. Valid: {valid}")
+            raise FanoutTransitionError(f"Invalid transition from {self._state.value}: {event}. Valid: {valid}")
 
     def _ensure_dir(self) -> Path:
         fd = _fanout_dir()
